@@ -1,35 +1,63 @@
 #
 # Misc
 #
-hostname: '{{ inventory_hostname }}'
+# CHANGE_ME: everything below in this block is a placeholder from the
+# original author's own homelab. Edit to match your own setup before running.
+hostname: "{{ inventory_hostname }}"
 
-timezone: Europe/Amsterdam
+timezone: America/New_York
 
-ntp_timezone: '{{ timezone }}'
+ntp_timezone: "{{ timezone }}"
 
 locale: en_US.UTF-8
 
 keyboard_layout: us
 
-username: notthebee
+username: angelus # the login user this playbook creates/manages on each host
+
+# CHANGE_ME: the full contents of your public key file (e.g. `cat ~/.ssh/id_ed25519.pub`),
+# as a single-line string. Used by roles/system/tasks/user.yml to authorize
+# this key for `username` on every managed host.
+ssh_public_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII07ukuUm57yQYo2YL8GSLtPU8z9Q0NdU28d49wdoxbw
 
 shell: /usr/bin/fish
 
-dotfiles_repo: https://github.com/notthebee/dotfiles
+dotfiles_repo: https://github.com/angelus788/dotfiles # e.g. https://github.com/<you>/dotfiles - or delete the dotfiles role/task if you don't use one
 
 guid: 1000
 
 #
 # Networking
-# 
-tailscale_enabled: yes 
+#
+# Both mesh VPNs below are opt-in (off by default) and independent - enable
+# either, both, or neither per your needs. Turn on with host_vars/group_vars
+# overrides, e.g. `tailscale_enabled: yes` for a specific host.
+
+# Tailscale (roles/tailscale) - needs `tailscale_token` (an auth key) set via
+# your vault (secret.yml), not committed here.
+tailscale_enabled: no
 
 tailscale_exit_node: no
 
+# NetBird (roles/netbird) - needs `netbird_setup_key` set via your vault
+# (secret.yml), not committed here. Unlike Tailscale, NetBird doesn't have a
+# client-side flag for advertising routes or exit nodes - that's configured
+# server-side via the NetBird dashboard/API (a "Network Routes" resource
+# assigned to this peer or a group it belongs to), so there's no
+# netbird_exit_node equivalent here.
+netbird_enabled: yes
+
+# Change this if you're self-hosting the NetBird management service instead
+# of using their cloud (https://netbird.io/pricing has a free tier).
+netbird_management_url: https://netbird.avgtechguy.com:443
+
+# CHANGE_ME: replace with your own subnets. `interface` on the `lan` entry is
+# only used by the Ubuntu netplan template (see roles/system/tasks/netplan.yml) -
+# irrelevant on Arch/Fedora hosts, which aren't network-configured by this playbook.
 networks:
   - name: lan
-    cidr: 192.168.2.0/24
-    base: 192.168.2
+    cidr: 192.168.1.0/24
+    base: 192.168.1
     interface: ens18
     tailscale: yes # whether the subnet should be exposed to other Tailscale nodes
   - name: app
@@ -49,17 +77,24 @@ docker_dir: /opt/docker/data
 
 docker_compose_dir: /opt/docker/compose
 
-services:
+# Renamed from "services" - that name collides with ansible_facts.services
+# (populated by geerlingguy.ntp's service_facts call) and gets silently
+# shadowed by it thanks to ansible-core's legacy fact-injection behavior,
+# which sits at higher variable precedence than group_vars.
+docker_services:
   - homeassistant
   - mqtt
   - nginxproxymanager
   - deconz
-  - photoprism
   - syncthing
 
 #
 # Packages
 #
+# This list uses Debian/Ubuntu package names. Arch and Fedora hosts override
+# this with their own corrected list in roles/system/vars/Archlinux.yml and
+# roles/system/vars/RedHat.yml (a few package names differ, e.g. lm-sensors
+# vs lm_sensors) - edit those files if you add/remove packages here.
 extra_packages:
   - fish
   - iperf3
@@ -80,12 +115,15 @@ extra_packages:
 #
 # Email credentials (for notifications)
 #
+# CHANGE_ME: used by chriswayg.msmtp-mailer for SMART/snapraid/security alerts.
+# That role only supports Debian/Ubuntu (see run.yml) - Arch/Fedora hosts won't
+# get these notifications until a different mailer is wired in for them.
 
-email: moe@notthebe.ee
+email: myserver_announcements@mailbox.org
 
-email_login: '{{ email }}'
+email_login: "{{ email }}"
 
-email_smtp_host: smtp.mailbox.org
+email_smtp_host: smtp.mailbox.org # CHANGE_ME: your SMTP provider
 
 email_smtp_port: 465
 
@@ -93,29 +131,49 @@ email_smtp_port_startls: 587
 
 # MSMTP
 msmtp_accounts:
-    - account: mailbox
-      host: '{{ email_smtp_host }}'
-      port: '{{ email_smtp_port_startls }}'
-      auth: 'on'
-      from: '{{ email }}'
-      user: '{{ email }}'
-      password: '{{ email_password }}'
+  - account: mailbox
+    host: "{{ email_smtp_host }}"
+    port: "{{ email_smtp_port_startls }}"
+    auth: "on"
+    from: "{{ email }}"
+    user: "{{ email }}"
+    password: "{{ email_password }}"
 
-msmtp_default_account: 'mailbox'
+msmtp_default_account: "mailbox"
 
-msmtp_alias_default: '{{ email }}'
+msmtp_alias_default: "{{ email }}"
 
 #
-# SSH (geerlingguy.security)
+# SSH (geerlingguy.security - not applied to Archlinux hosts, see run.yml)
 #
-security_ssh_port: 69
+security_ssh_port: 69 # CHANGE_ME: pick your own non-standard port; must match ansible_port for the host in your inventory
 
-security_sudoers_passwordless: ['{{ username }}']
+security_sudoers_passwordless: ["{{ username }}"]
 
 security_autoupdate_reboot: true
 
-security_autoupdate_mail_to: '{{ email }}'
+security_autoupdate_mail_to: "{{ email }}"
 
-security_autoupdate_reboot_time: '23:00'
+security_autoupdate_reboot_time: "23:00"
 
 security_autoupdate_mail_on_error: false
+
+#
+# Fedora workstation extras (roles/system/tasks/fedora_workstation.yml)
+#
+# All off by default - these are desktop-oriented (RPM Fusion, codecs, Steam/
+# Discord-adjacent stuff, Flatpak, AppImage support) and don't make sense for
+# a headless Fedora server. Turn fedora_workstation on in host_vars for the
+# specific Fedora desktop box in your fleet, e.g.:
+#   # host_vars/my-fedora-desktop.yml
+#   fedora_workstation: yes
+fedora_workstation: yes
+
+# Only relevant if fedora_workstation is on. Terra adds packages Fedora
+# doesn't ship (Discord, Zed, Floorp, swayfx, ...) - most people don't need it.
+fedora_enable_terra: yes
+
+# Only relevant if fedora_workstation is on. Applies pending device firmware
+# updates via fwupdmgr - can be disruptive (BIOS/EC updates), so it's opt-in
+# even on workstation hosts.
+fedora_update_firmware: yes

@@ -1,0 +1,25 @@
+---
+sudo_group: wheel
+
+python_pkg: python
+
+python_pip_pkg: python-pip
+
+# Corrected for Arch package names - keep in sync with group_vars/all/vars.yml's
+# extra_packages (Debian-oriented list). This fully overrides it on Arch hosts.
+extra_packages:
+  - fish
+  - iperf3
+  - speedtest-cli
+  - htop
+  - stow
+  - eza # exa is no longer in Arch's official repos - upstream archived, eza is the maintained fork
+  - git
+  - fastfetch # neofetch is no longer in Arch's official repos - upstream archived, fastfetch is its replacement
+  - neovim
+  - tmux
+  - mosh
+  - rsync
+  - lm_sensors
+  - iotop
+  - ncdu

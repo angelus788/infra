@@ -1,0 +1,13 @@
+- name: Add tailscale dnf repository
+  ansible.builtin.get_url:
+    url: https://pkgs.tailscale.com/stable/fedora/tailscale.repo
+    dest: /etc/yum.repos.d/tailscale.repo
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Install tailscale
+  ansible.builtin.dnf:
+    name: tailscale
+    update_cache: yes
+    state: present

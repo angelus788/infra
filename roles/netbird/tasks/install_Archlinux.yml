@@ -1,0 +1,20 @@
+# NetBird isn't in Arch's official repos, only the AUR (netbird-bin) or
+# Chaotic-AUR - neither of which this playbook installs automatically (AUR
+# builds need a non-root build user and aren't a great fit for unattended
+# infra-as-code). Install it yourself first, e.g.:
+#   git clone https://aur.archlinux.org/netbird-bin.git && cd netbird-bin && makepkg -si
+# or via an AUR helper you already use (yay -S netbird-bin).
+- name: Check if netbird is already installed
+  ansible.builtin.command:
+    cmd: which netbird
+  register: netbird_bin
+  changed_when: false
+  failed_when: false
+
+- name: Fail if netbird isn't installed yet
+  ansible.builtin.fail:
+    msg: >-
+      netbird isn't installed and isn't in Arch's official repos. Install
+      netbird-bin from the AUR first (see comment at the top of this file),
+      then re-run this role.
+  when: netbird_bin.rc != 0

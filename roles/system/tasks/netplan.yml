@@ -1,4 +1,6 @@
 ---
+# netplan is Ubuntu-specific. Arch/Fedora hosts keep whatever NetworkManager
+# config they already have - not templated by this playbook.
 - name: Template out the netplan file
   ansible.builtin.template:
     src: netplan.yaml
@@ -7,5 +9,6 @@
     group: root
     mode: 0644
   notify: Apply netplan config
+  when: ansible_distribution == "Ubuntu"
 
 - meta: flush_handlers

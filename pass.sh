@@ -1,8 +1,21 @@
 #!/usr/bin/env bash
 
-# Keychain query fields.
-# LABEL is the value you put for "Keychain Item Name" in Keychain.app.
-LABEL="ansible-vault-password"
-ACCOUNT_NAME="notthebee"
+# Fetches the Ansible Vault password from Bitwarden, so this works from any
+# machine (not just one with a macOS Keychain) as long as the `bw` CLI is
+# installed and unlocked there.
+#
+# ITEM_NAME must be a Bitwarden *Login* item (bw get password only reads the
+# password field of Login items, not Secure Notes) whose password field holds
+# your vault password.
+#
+# Requires an already-unlocked bw session, i.e. $BW_SESSION set in the
+# environment - however you keep that alive (bw unlock, a shell hook on new
+# terminals, etc.) is up to you; this script doesn't unlock anything itself.
+ITEM_NAME="ansible-vault-password"
 
-/usr/bin/security find-generic-password -w -a "$ACCOUNT_NAME" -l "$LABEL"
+if [ -z "$BW_SESSION" ]; then
+    echo "BW_SESSION is not set - unlock your Bitwarden vault first (bw unlock)." >&2
+    exit 1
+fi
+
+bw get password "$ITEM_NAME" --session "$BW_SESSION"

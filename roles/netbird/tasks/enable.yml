@@ -1,0 +1,5 @@
+- name: Make sure that netbird is enabled
+  ansible.builtin.service:
+    name: netbird
+    state: started
+    enabled: yes

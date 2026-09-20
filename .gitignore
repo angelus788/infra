@@ -10,3 +10,4 @@ secret.yml
 !/group_vars/all/vars.yml
 mountsraspi
 .fact_cache
+/.ansible/

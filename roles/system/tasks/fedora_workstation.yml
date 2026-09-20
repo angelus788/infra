@@ -1,0 +1,125 @@
+---
+# Desktop-oriented Fedora setup: RPM Fusion + codecs, Flatpak/Flathub, AppImage
+# support. Opt-in via fedora_workstation (group_vars/all/vars.yml) - doesn't
+# make sense for a headless Fedora server in the fleet.
+
+- name: Enable RPM Fusion free and nonfree repos
+  ansible.builtin.dnf:
+    name:
+      - "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-{{ ansible_distribution_major_version }}.noarch.rpm"
+      - "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{ ansible_distribution_major_version }}.noarch.rpm"
+    state: present
+    # Bootstrap problem: dnf5 validates GPG signatures even for a repo's own
+    # release package, but that package is what registers the key to trust in
+    # the first place. Packages actually installed from the RPM Fusion repos
+    # afterward are still gpgcheck-verified as normal (per those repos' own
+    # .repo definitions) - this only skips verification for this one release
+    # RPM itself, same as accepting the "import this key?" prompt would when
+    # running `dnf install <url>` interactively.
+    disable_gpg_check: true
+
+# Some Fedora releases' RPM Fusion release package has shipped with a
+# packaging bug that enables the rpmfusion-free-rawhide repo and disables the
+# proper versioned free repo, which breaks codec/ffmpeg installs with cryptic
+# glibc errors. Asserting the correct state unconditionally is cheap and safe
+# even when the bug isn't present, so we don't bother detecting it first.
+#
+# community.general.dnf_config_manager doesn't support dnf5 (Fedora's default
+# since Fedora 41), so these use `dnf config-manager setopt` directly instead
+# - that syntax is identical on both the legacy dnf4 and dnf5 config-manager
+# plugins.
+- name: Make sure the correct RPM Fusion free repos are enabled
+  ansible.builtin.command:
+    cmd: dnf config-manager setopt rpmfusion-free.enabled=1 rpmfusion-free-updates.enabled=1
+  changed_when: false
+
+- name: Make sure the RPM Fusion free rawhide repo is disabled
+  ansible.builtin.command:
+    cmd: dnf config-manager setopt rpmfusion-free-rawhide.enabled=0
+  register: rpmfusion_rawhide_disable
+  changed_when: false
+  # On releases where the packaging bug isn't present, this repo doesn't
+  # exist at all, and dnf5's config-manager hard-fails on an unknown repo ID
+  # (unlike dnf4, which no-ops). That specific failure just means there's
+  # nothing to fix here, so don't treat it as an error - anything else still is.
+  failed_when:
+    - rpmfusion_rawhide_disable.rc != 0
+    - "'No matching repository to modify' not in rpmfusion_rawhide_disable.stderr"
+
+- name: Check whether ffmpeg-free is installed
+  ansible.builtin.package_facts:
+    manager: auto
+
+- name: Swap ffmpeg-free for full ffmpeg
+  ansible.builtin.command:
+    cmd: dnf swap -y ffmpeg-free ffmpeg --allowerasing
+  when: "'ffmpeg-free' in ansible_facts.packages"
+  register: ffmpeg_swap
+  changed_when: true
+
+- name: Upgrade the multimedia group (hardware acceleration, codecs)
+  ansible.builtin.command:
+    cmd: dnf group upgrade -y multimedia
+  register: multimedia_upgrade
+  changed_when: "'Nothing to do' not in multimedia_upgrade.stdout"
+
+- name: Upgrade the core group (AppStream metadata for the software center)
+  ansible.builtin.command:
+    cmd: dnf group upgrade -y core
+  register: core_upgrade
+  changed_when: "'Nothing to do' not in core_upgrade.stdout"
+
+# GNOME apps can hold onto references to the old ffmpeg-free libraries and act
+# strange until the next reboot.
+- name: Reboot after the ffmpeg swap
+  ansible.builtin.reboot:
+    msg: Rebooting after swapping ffmpeg-free for ffmpeg
+  when: ffmpeg_swap is changed
+
+- name: Enable the Terra repo (community packages Fedora doesn't ship)
+  ansible.builtin.command:
+    cmd: >-
+      dnf install -y --nogpgcheck
+      --repofrompath 'terra,https://repos.fyralabs.com/terra$releasever'
+      terra-release
+    creates: /etc/yum.repos.d/terra.repo
+  when: fedora_enable_terra | default(false)
+
+- name: Apply firmware updates
+  when: fedora_update_firmware | default(false)
+  block:
+    - name: Refresh firmware metadata
+      ansible.builtin.command:
+        cmd: fwupdmgr refresh --force
+      changed_when: false
+
+    - name: Apply available firmware updates
+      ansible.builtin.command:
+        cmd: fwupdmgr update -y
+      register: fwupd_result
+      failed_when: false
+      changed_when: "'Successfully installed' in fwupd_result.stdout"
+
+- name: Install flatpak
+  ansible.builtin.dnf:
+    name: flatpak
+    state: present
+
+- name: Add the Flathub remote (system-wide)
+  community.general.flatpak_remote:
+    name: flathub
+    flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
+    state: present
+    method: system
+
+- name: Install fuse-libs for AppImage support
+  ansible.builtin.dnf:
+    name: fuse-libs
+    state: present
+
+- name: Install Gearlever (AppImage manager)
+  community.general.flatpak:
+    name: it.mijorus.gearlever
+    remote: flathub
+    state: present
+    method: system

@@ -10,7 +10,7 @@ networks:
 {% endif %}
 
 services:
-{% if "nginxproxymanager" in services %}
+{% if "nginxproxymanager" in docker_services %}
   nginxproxymanager:
     container_name: nginxproxymanager
     image: jc21/nginx-proxy-manager:latest
@@ -30,7 +30,7 @@ services:
       - "{{ docker_dir }}/nginxproxymanager/letsencrypt:/etc/letsencrypt"
 {% endif %}
 
-{% if "homeassistant" in services %}
+{% if "homeassistant" in docker_services %}
   homeassistant:
     container_name: homeassistant
     image: homeassistant/home-assistant:stable
@@ -47,29 +47,38 @@ services:
       - "{{ docker_dir }}/homeassistant:/config"
     environment:
       - TZ={{ timezone }}
-    restart: always
 {% endif %}
 
-{% if "mqtt" in services %}
+{% if "mqtt" in docker_services %}
   mqtt:
     container_name: mqtt
     image: eclipse-mosquitto
+{% if not app_cidr == "" %}
     networks:
       app:
         ipv4_address: {{ app_base }}.13
+{% else %}
+    ports:
+      - "1883:1883"
+{% endif %}
     volumes:
       - "{{ docker_dir }}/mosquitto:/mosquitto"
     restart: always
 {% endif %}
 
-{% if "deconz" in services %}
+{% if "deconz" in docker_services %}
   deconz:
     container_name: deconz
     image: deconzcommunity/deconz
     restart: always
+{% if not app_cidr == "" %}
     networks:
       app:
         ipv4_address: {{ app_base }}.25
+{% else %}
+    ports:
+      - "8080:80"
+{% endif %}
     volumes:
       - "{{ docker_dir }}/deconz:/opt/deCONZ"
     devices:
@@ -79,7 +88,7 @@ services:
       - TZ={{ timezone }}
 {% endif %}
 
-{% if "syncthing" in services %}
+{% if "syncthing" in docker_services %}
   syncthing:
     image: syncthing/syncthing
     container_name: syncthing
@@ -97,7 +106,7 @@ services:
     restart: unless-stopped
 {% endif %}
 
-{% if "photoprism" in services %}
+{% if "photoprism" in docker_services %}
   photoprism_mariadb:
     container_name: photoprism-mariadb
     image: mariadb:latest

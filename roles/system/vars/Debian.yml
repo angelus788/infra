@@ -1,0 +1,6 @@
+---
+sudo_group: sudo
+
+python_pkg: python3
+
+python_pip_pkg: python3-pip

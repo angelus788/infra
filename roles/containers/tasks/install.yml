@@ -1,17 +1,4 @@
 ---
-- name: Install Python and python3-pip
-  package:
-    name:
-      - python3
-      - python3-pip
-    state: present
-
-- name: Install docker module for Python
-  pip:
-    name: 
-      - docker
-      - docker-compose
-
 - name: Make sure that the docker folders exists
   ansible.builtin.file:
     path: "{{ item }}"
@@ -23,14 +10,18 @@
     - "{{ docker_dir }}"
 
 - name: Copy the compose file
-  template: 
+  template:
     src: templates/compose.yaml
     dest: "{{ docker_compose_dir }}/compose.yaml"
   vars:
-    app_cidr: "{{ (networks | selectattr('name', '==', 'app') | map(attribute='cidr') | first) | default('') }}"
-    app_base: "{{ (networks | selectattr('name', '==', 'app') | map(attribute='base') | first) | default('') }}"
+    # The "app" network is a macvlan sitting on a VLAN interface that only
+    # netplan creates, and netplan is Ubuntu-only (see roles/system/tasks/netplan.yml).
+    # On Arch/Fedora there's no such interface, so fall back to the compose
+    # template's plain port-published path instead of trying macvlan.
+    app_cidr: "{{ (networks | selectattr('name', '==', 'app') | map(attribute='cidr') | first | default('')) if ansible_distribution == 'Ubuntu' else '' }}"
+    app_base: "{{ (networks | selectattr('name', '==', 'app') | map(attribute='base') | first | default('')) if ansible_distribution == 'Ubuntu' else '' }}"
 
 - name: Docker-compose up
-  community.docker.docker_compose:
+  community.docker.docker_compose_v2:
     project_src: "{{ docker_compose_dir }}"
 

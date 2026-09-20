@@ -1,0 +1,20 @@
+---
+# geerlingguy.security moves sshd to security_ssh_port, but on RedHat-family
+# hosts that's not enough on its own: firewalld only allows the "ssh" service
+# (hardcoded to port 22) by default, and SELinux won't let sshd bind a port
+# that isn't labeled ssh_port_t. Without both of these, sshd ends up refusing
+# connections on both the old and new port after the restart.
+- name: Allow the configured SSH port through firewalld
+  ansible.posix.firewalld:
+    port: "{{ security_ssh_port }}/tcp"
+    permanent: true
+    immediate: true
+    state: enabled
+
+- name: Label the configured SSH port for SELinux
+  community.general.seport:
+    ports: "{{ security_ssh_port }}"
+    proto: tcp
+    setype: ssh_port_t
+    state: present
+  when: ansible_selinux.status | default("disabled") == "enabled"

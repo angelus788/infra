@@ -1,0 +1,41 @@
+---
+# Tune dnf before doing anything else - parallel downloads make the update
+# below (and every dnf task after it) noticeably faster.
+- name: Tune dnf.conf for speed and less prompting
+  community.general.ini_file:
+    path: /etc/dnf/dnf.conf
+    section: main
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    no_extra_spaces: true
+    mode: "0644"
+  loop:
+    - { option: max_parallel_downloads, value: "10" }
+    - { option: defaultyes, value: "True" }
+    - { option: keepcache, value: "True" }
+
+- name: Update and upgrade packages
+  dnf:
+    name: "*"
+    state: latest
+    update_cache: yes
+
+- name: Autoremove unneeded packages
+  dnf:
+    autoremove: yes
+
+- name: Install dnf-utils (provides needs-restarting)
+  dnf:
+    name: dnf-utils
+    state: present
+
+- name: Check if reboot is required
+  command: needs-restarting -r
+  register: needs_restarting
+  failed_when: false
+  changed_when: false
+
+- name: Reboot if required
+  reboot:
+    msg: Rebooting due to a kernel update
+  when: needs_restarting.rc == 1

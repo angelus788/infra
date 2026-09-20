@@ -1,5 +1,13 @@
 ---
+- include_vars: "vars/{{ ansible_os_family }}.yml"
 - include_tasks: netplan.yml
 - include_tasks: essential.yml
 - include_tasks: user.yml
 - include_tasks: dotfiles.yml
+  tags:
+      - dotfiles
+
+- include_tasks: fedora_workstation.yml
+  when: ansible_distribution == "Fedora" and fedora_workstation | default(false)
+  tags:
+      - fedora_workstation

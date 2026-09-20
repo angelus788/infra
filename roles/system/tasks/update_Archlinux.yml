@@ -1,0 +1,18 @@
+---
+- name: Update and upgrade packages
+  pacman:
+    update_cache: yes
+    upgrade: yes
+
+# Arch is a rolling release with no reboot-required flag file, so the usual
+# heuristic is: if the currently running kernel's module directory is gone,
+# pacman has already installed a newer kernel package on top of it.
+- name: Check if the running kernel's modules are still present
+  stat:
+    path: "/usr/lib/modules/{{ ansible_kernel }}"
+  register: running_kernel_modules
+
+- name: Reboot if required
+  reboot:
+    msg: Rebooting due to a kernel update
+  when: not running_kernel_modules.stat.exists

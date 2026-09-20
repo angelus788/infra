@@ -1,0 +1,34 @@
+---
+sudo_group: wheel
+
+python_pkg: python3
+
+python_pip_pkg: python3-pip
+
+# Corrected for Fedora package names - keep in sync with group_vars/all/vars.yml's
+# extra_packages (Debian-oriented list). This fully overrides it on Fedora hosts.
+extra_packages:
+  - fish
+  - iperf3
+  - speedtest-cli
+  - htop
+  - stow
+  - eza # exa is gone from Fedora repos - upstream archived, eza is the maintained fork
+  - git
+  - fastfetch # neofetch is gone from Fedora repos - upstream archived, fastfetch is its replacement
+  - neovim
+  - tmux
+  - mosh
+  - rsync
+  - lm_sensors
+  - iotop
+  - ncdu
+  - dnf-utils # provides needs-restarting, used by tasks/update_RedHat.yml
+
+# geerlingguy.security's dnf-automatic autoupdate support (autoupdate-RedHat.yml)
+# hardcodes the systemd unit name `dnf-automatic-install.timer`, which doesn't
+# exist under Fedora 41+'s dnf5 - the actual unit is `dnf5-automatic.timer`.
+# That's an internal set_fact in the role, not an overridable var, so there's
+# no clean way to fix it from here - just skip this sub-feature on Fedora
+# until the upstream role catches up to dnf5.
+security_autoupdate_enabled: false

@@ -1,0 +1,24 @@
+- name: Get current netbird status
+  changed_when: false
+  failed_when: false
+  register: netbird_status_before
+  ansible.builtin.command:
+    cmd: netbird status
+
+# NetBird has no client-side equivalent of Tailscale's --advertise-routes or
+# --advertise-exit-node flags. Routing/exit-node behavior for a peer is
+# configured server-side, via the NetBird dashboard or API (a "Network
+# Routes" resource assigned to this peer or a group it belongs to).
+- name: Join the NetBird network
+  changed_when: false
+  ansible.builtin.command:
+    cmd: >-
+      netbird up
+      --management-url {{ netbird_management_url }}
+      --setup-key {{ netbird_setup_key }}
+
+- name: Get netbird status after the command
+  changed_when: netbird_status_before.stdout != netbird_status_after.stdout
+  register: netbird_status_after
+  ansible.builtin.command:
+    cmd: netbird status

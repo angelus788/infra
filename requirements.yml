@@ -1,7 +1,11 @@
 ---
 roles:
-    - name: geerlingguy.repo-epel
     - name: geerlingguy.security
     - name: geerlingguy.docker
     - name: geerlingguy.ntp
     - name: chriswayg.msmtp-mailer
+
+collections:
+    - name: community.general # dnf_config_manager, flatpak, flatpak_remote, ini_file, seport
+    - name: community.docker # already used by roles/containers/tasks/install.yml
+    - name: ansible.posix # firewalld

@@ -2,7 +2,7 @@
 #
 # Tasks and roles for all hosts
 #
-- hosts: mona
+- hosts: fleet
   gather_facts: no
 
   pre_tasks:
@@ -27,6 +27,8 @@
             - neovim
 
       - role: geerlingguy.security
+        # No Archlinux support upstream
+        when: ansible_os_family != "Archlinux"
         tags:
             - security
 
@@ -34,7 +36,13 @@
         tags:
             - docker
 
+      - role: geerlingguy.ntp
+        tags:
+            - ntp
+
       - role: chriswayg.msmtp-mailer
+        # Debian/Ubuntu only upstream - no Fedora or Arch support
+        when: ansible_os_family == "Debian"
         tags:
             - msmtp
 
@@ -46,3 +54,16 @@
         when: tailscale_enabled | default(false)
         tags:
             - tailscale
+
+      - role: netbird
+        when: netbird_enabled | default(false)
+        tags:
+            - netbird
+
+  post_tasks:
+      - import_tasks: tasks/redhat_ssh_firewall.yml
+        when:
+            - ansible_os_family == "RedHat"
+            - security_ssh_port is defined
+        tags:
+            - security

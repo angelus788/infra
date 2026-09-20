@@ -1,10 +1,12 @@
+{% set lan_interface = (networks | selectattr('name', '==', 'lan') | map(attribute='interface') | first) %}
+{% set app_base = (networks | selectattr('name', '==', 'app') | map(attribute='base') | first) %}
 network:
   version: 2
   ethernets:
-    {{ networks.lan.interface }}:
+    {{ lan_interface }}:
       dhcp4: true
   vlans:
     app:
       id: 4
-      link: {{ networks.lan.interface }}
-      addresses: [ '{{ networks.app.base }}.228/24' ]
+      link: {{ lan_interface }}
+      addresses: [ '{{ app_base }}.228/24' ]

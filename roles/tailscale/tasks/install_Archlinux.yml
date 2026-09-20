@@ -1,0 +1,5 @@
+- name: Install tailscale
+  ansible.builtin.pacman:
+    name: tailscale
+    update_cache: yes
+    state: present

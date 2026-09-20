@@ -1,0 +1,5 @@
+- name: Make sure that tailscaled is enabled
+  ansible.builtin.service:
+    name: tailscaled
+    state: started
+    enabled: yes
