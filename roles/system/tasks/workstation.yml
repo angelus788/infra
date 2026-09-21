@@ -1,0 +1,6 @@
+---
+# Desktop extras for workstation_mode hosts (group_vars/all/vars.yml). Runs
+# distro-specific setup first (extra repos, codecs), then the bits shared
+# across all three supported OS families.
+- include_tasks: "workstation_{{ ansible_os_family }}.yml"
+- include_tasks: workstation_common.yml

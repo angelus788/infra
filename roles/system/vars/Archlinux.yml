@@ -23,3 +23,7 @@ extra_packages:
   - lm_sensors
   - iotop
   - ncdu
+
+# Package providing libfuse2 - most AppImages still bundle against FUSE2, not
+# FUSE3. Used by roles/system/tasks/workstation_common.yml.
+appimage_fuse_pkg: fuse2

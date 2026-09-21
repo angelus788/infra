@@ -159,21 +159,29 @@ security_autoupdate_reboot_time: "23:00"
 security_autoupdate_mail_on_error: false
 
 #
-# Fedora workstation extras (roles/system/tasks/fedora_workstation.yml)
+# Workstation mode (roles/system/tasks/workstation.yml, run.yml)
 #
-# All off by default - these are desktop-oriented (RPM Fusion, codecs, Steam/
-# Discord-adjacent stuff, Flatpak, AppImage support) and don't make sense for
-# a headless Fedora server. Turn fedora_workstation on in host_vars for the
-# specific Fedora desktop box in your fleet, e.g.:
-#   # host_vars/my-fedora-desktop.yml
-#   fedora_workstation: yes
-fedora_workstation: yes
+# Off by default - this playbook otherwise assumes a headless server. Turn it
+# on per-host or per-group for a desktop/laptop instead, e.g. via the
+# [workstations] group in hosts.example:
+#   [workstations:vars]
+#   workstation_mode=yes
+#
+# This does two things:
+#   1. run.yml skips the server-only roles (geerlingguy.docker, containers,
+#      chriswayg.msmtp-mailer) for these hosts.
+#   2. roles/system/tasks/workstation.yml runs desktop extras appropriate to
+#      the host's distro - Flatpak/Flathub, AppImage support and firmware
+#      updates on all three, plus RPM Fusion/codecs/Terra on Fedora,
+#      multilib/codecs on Arch, and restricted-extras/codecs on Debian/Ubuntu.
+workstation_mode: no
 
-# Only relevant if fedora_workstation is on. Terra adds packages Fedora
-# doesn't ship (Discord, Zed, Floorp, swayfx, ...) - most people don't need it.
-fedora_enable_terra: yes
+# Only relevant if workstation_mode is on and the host is Fedora. Terra adds
+# packages Fedora doesn't ship (Discord, Zed, Floorp, swayfx, ...) - most
+# people don't need it.
+workstation_enable_terra: yes
 
-# Only relevant if fedora_workstation is on. Applies pending device firmware
+# Only relevant if workstation_mode is on. Applies pending device firmware
 # updates via fwupdmgr - can be disruptive (BIOS/EC updates), so it's opt-in
 # even on workstation hosts.
-fedora_update_firmware: yes
+workstation_update_firmware: yes

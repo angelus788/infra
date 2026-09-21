@@ -1,0 +1,52 @@
+---
+# Desktop extras shared across all supported OS families - Flatpak/Flathub,
+# AppImage support, and firmware updates. Distro-specific setup (codecs,
+# extra repos) already ran in workstation_{{ ansible_os_family }}.yml before
+# this file is included.
+
+- name: Install flatpak
+  ansible.builtin.package:
+    name: flatpak
+    state: present
+
+- name: Add the Flathub remote (system-wide)
+  community.general.flatpak_remote:
+    name: flathub
+    flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
+    state: present
+    method: system
+
+# appimage_fuse_pkg is set per OS family in roles/system/vars/ - the package
+# providing libfuse2 differs (fuse-libs on Fedora, libfuse2 on Debian/Ubuntu,
+# fuse2 on Arch), and most AppImages still bundle against FUSE2, not FUSE3.
+- name: Install AppImage support ({{ appimage_fuse_pkg }})
+  ansible.builtin.package:
+    name: "{{ appimage_fuse_pkg }}"
+    state: present
+
+- name: Install Gearlever (AppImage manager)
+  community.general.flatpak:
+    name: it.mijorus.gearlever
+    remote: flathub
+    state: present
+    method: system
+
+- name: Apply firmware updates
+  when: workstation_update_firmware | default(false)
+  block:
+    - name: Ensure fwupd is installed
+      ansible.builtin.package:
+        name: fwupd
+        state: present
+
+    - name: Refresh firmware metadata
+      ansible.builtin.command:
+        cmd: fwupdmgr refresh --force
+      changed_when: false
+
+    - name: Apply available firmware updates
+      ansible.builtin.command:
+        cmd: fwupdmgr update -y
+      register: fwupd_result
+      failed_when: false
+      changed_when: "'Successfully installed' in fwupd_result.stdout"

@@ -1,0 +1,34 @@
+---
+# Debian/Ubuntu desktop extras. Package availability differs between the two
+# (ubuntu-restricted-extras is Ubuntu-only), so this branches on
+# ansible_distribution rather than the shared ansible_os_family. Flatpak/
+# Flathub, AppImage support and firmware updates are shared across all
+# workstation OS families - see workstation_common.yml.
+
+- name: Accept the msttcorefonts EULA non-interactively
+  ansible.builtin.debconf:
+    name: ttf-mscorefonts-installer
+    question: msttcorefonts/accepted-mscorefonts-eula
+    value: 'true'
+    vtype: select
+  when: ansible_distribution == "Ubuntu"
+
+- name: Install ubuntu-restricted-extras (codecs, fonts)
+  ansible.builtin.apt:
+    name: ubuntu-restricted-extras
+    state: present
+  when: ansible_distribution == "Ubuntu"
+
+# Debian has no restricted-extras equivalent, and pulling in non-free codecs
+# needs the contrib/non-free(-firmware) apt components - a licensing choice
+# this playbook doesn't flip on for you. Enable those in
+# /etc/apt/sources.list yourself first if you want this to actually install
+# anything beyond the free (open) GStreamer plugins.
+- name: Install GStreamer codec packages
+  ansible.builtin.apt:
+    name:
+      - gstreamer1.0-libav
+      - gstreamer1.0-plugins-bad
+      - gstreamer1.0-plugins-ugly
+    state: present
+  when: ansible_distribution == "Debian"

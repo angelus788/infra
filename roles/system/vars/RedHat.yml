@@ -32,3 +32,7 @@ extra_packages:
 # no clean way to fix it from here - just skip this sub-feature on Fedora
 # until the upstream role catches up to dnf5.
 security_autoupdate_enabled: false
+
+# Package providing libfuse2 - most AppImages still bundle against FUSE2, not
+# FUSE3. Used by roles/system/tasks/workstation_common.yml.
+appimage_fuse_pkg: fuse-libs

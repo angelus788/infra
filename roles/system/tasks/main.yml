@@ -7,7 +7,7 @@
   tags:
       - dotfiles
 
-- include_tasks: fedora_workstation.yml
-  when: ansible_distribution == "Fedora" and fedora_workstation | default(false)
+- include_tasks: workstation.yml
+  when: workstation_mode | default(false)
   tags:
-      - fedora_workstation
+      - workstation

@@ -8,10 +8,25 @@
 # that haven't been hardened yet. It's a no-op once a host already answers
 # on its configured port, so freshly-provisioned and already-hardened hosts
 # can safely live in the same group.
-[fleet]
+[fleet:children]
+servers
+workstations
+
+[servers]
 ubuntu-box ansible_host=192.168.2.10 ansible_user=CHANGE_ME ansible_port=69
 arch-box   ansible_host=192.168.2.11 ansible_user=CHANGE_ME ansible_port=69
 fedora-box ansible_host=192.168.2.12 ansible_user=CHANGE_ME ansible_port=69
+
+# Desktops/laptops instead of headless servers - same play (run.yml still
+# just targets [fleet]), but workstation_mode=yes below (see
+# group_vars/all/vars.yml) skips the server-only roles and turns on desktop
+# extras (roles/system/tasks/workstation.yml) instead. Supports Fedora, Arch
+# and Debian/Ubuntu.
+[workstations]
+fedora-desktop ansible_host=192.168.2.20 ansible_user=CHANGE_ME ansible_port=69
+
+[workstations:vars]
+workstation_mode=yes
 
 # If you have several keys loaded in your ssh-agent, uncomment this - without
 # it, ssh offers every agent key before your intended one, which can exceed

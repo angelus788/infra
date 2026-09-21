@@ -4,3 +4,7 @@ sudo_group: sudo
 python_pkg: python3
 
 python_pip_pkg: python3-pip
+
+# Package providing libfuse2 - most AppImages still bundle against FUSE2, not
+# FUSE3. Used by roles/system/tasks/workstation_common.yml.
+appimage_fuse_pkg: libfuse2

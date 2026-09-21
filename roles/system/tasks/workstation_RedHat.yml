@@ -1,7 +1,8 @@
 ---
-# Desktop-oriented Fedora setup: RPM Fusion + codecs, Flatpak/Flathub, AppImage
-# support. Opt-in via fedora_workstation (group_vars/all/vars.yml) - doesn't
-# make sense for a headless Fedora server in the fleet.
+# Fedora-specific desktop extras: RPM Fusion + full codecs, and the optional
+# Terra repo. This file only runs for ansible_os_family == "RedHat" (which
+# includes Fedora); Flatpak/Flathub, AppImage support and firmware updates are
+# shared across all workstation OS families - see workstation_common.yml.
 
 - name: Enable RPM Fusion free and nonfree repos
   ansible.builtin.dnf:
@@ -83,43 +84,4 @@
       --repofrompath 'terra,https://repos.fyralabs.com/terra$releasever'
       terra-release
     creates: /etc/yum.repos.d/terra.repo
-  when: fedora_enable_terra | default(false)
-
-- name: Apply firmware updates
-  when: fedora_update_firmware | default(false)
-  block:
-    - name: Refresh firmware metadata
-      ansible.builtin.command:
-        cmd: fwupdmgr refresh --force
-      changed_when: false
-
-    - name: Apply available firmware updates
-      ansible.builtin.command:
-        cmd: fwupdmgr update -y
-      register: fwupd_result
-      failed_when: false
-      changed_when: "'Successfully installed' in fwupd_result.stdout"
-
-- name: Install flatpak
-  ansible.builtin.dnf:
-    name: flatpak
-    state: present
-
-- name: Add the Flathub remote (system-wide)
-  community.general.flatpak_remote:
-    name: flathub
-    flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
-    state: present
-    method: system
-
-- name: Install fuse-libs for AppImage support
-  ansible.builtin.dnf:
-    name: fuse-libs
-    state: present
-
-- name: Install Gearlever (AppImage manager)
-  community.general.flatpak:
-    name: it.mijorus.gearlever
-    remote: flathub
-    state: present
-    method: system
+  when: workstation_enable_terra | default(false)

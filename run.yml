@@ -33,6 +33,8 @@
             - security
 
       - role: geerlingguy.docker
+        # Not relevant on a workstation (group_vars/all/vars.yml)
+        when: not (workstation_mode | default(false))
         tags:
             - docker
 
@@ -41,12 +43,18 @@
             - ntp
 
       - role: chriswayg.msmtp-mailer
-        # Debian/Ubuntu only upstream - no Fedora or Arch support
-        when: ansible_os_family == "Debian"
+        # Debian/Ubuntu only upstream - no Fedora or Arch support. Also not
+        # relevant on a workstation (group_vars/all/vars.yml) - these alerts
+        # are for SMART/snapraid on a server.
+        when:
+            - ansible_os_family == "Debian"
+            - not (workstation_mode | default(false))
         tags:
             - msmtp
 
       - name: containers
+        # Not relevant on a workstation (group_vars/all/vars.yml)
+        when: not (workstation_mode | default(false))
         tags:
           - containers
 

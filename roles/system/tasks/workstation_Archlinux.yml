@@ -1,0 +1,34 @@
+---
+# Arch-specific desktop extras: enable multilib (32-bit compat libs, needed
+# for Steam and similar) and install the full GStreamer codec set - Arch's
+# base gst-plugins-base/good don't include the patent-encumbered ugly/bad/
+# libav sets by default. Flatpak/Flathub, AppImage support and firmware
+# updates are shared across all workstation OS families - see
+# workstation_common.yml.
+
+# pacman.conf ships [multilib] commented out by default, directly followed by
+# a commented Include line. A plain lineinfile/regexp against just the
+# Include line would risk matching the wrong one, since the same commented
+# "#Include = /etc/pacman.d/mirrorlist" line also appears under other
+# (unrelated) repo sections - so this matches the two-line block together.
+- name: Enable the multilib repo
+  ansible.builtin.replace:
+    path: /etc/pacman.conf
+    regexp: '^#\[multilib\]\n#Include = /etc/pacman.d/mirrorlist'
+    replace: "[multilib]\nInclude = /etc/pacman.d/mirrorlist"
+  register: multilib_enabled
+
+- name: Sync the package database after enabling multilib
+  ansible.builtin.pacman:
+    update_cache: yes
+  when: multilib_enabled is changed
+
+- name: Install GStreamer codec packages
+  ansible.builtin.pacman:
+    name:
+      - gst-plugins-base
+      - gst-plugins-good
+      - gst-plugins-bad
+      - gst-plugins-ugly
+      - gst-libav
+    state: present
