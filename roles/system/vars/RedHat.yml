@@ -78,6 +78,16 @@ system_workstation_terra_packages:
   - yaml-language-server
   - terraform-ls
   - lua-language-server
+  # Nerd Fonts (the dotfiles' ghostty falls back to JetBrainsMono Nerd Font
+  # Mono for icon glyphs; starship's prompt needs them too)
+  - jetbrainsmono-nerd-fonts
+  - firacode-nerd-fonts
+  - hack-nerd-fonts
+  - cascadiacode-nerd-fonts
+  - iosevka-nerd-fonts
+  - meslo-nerd-fonts
+  - ubuntumono-nerd-fonts
+  - sourcecodepro-nerd-fonts
 
 # Language servers enabled in the dotfiles' nvim (vim.lsp.enable) that Fedora
 # doesn't package. Installed globally (/usr/local) so every shell finds them.
@@ -101,3 +111,9 @@ system_workstation_pipx_packages:
   # headers). Python 3.13 has prebuilt lxml 5.x wheels - nothing to compile.
   - name: systemd-language-server
     python: python3.13
+
+# nixfmt (RFC style) - the formatter nix-config's treefmt and the dotfiles'
+# zed/vscodium/nixd use. Not packaged for Fedora; NixOS/nixfmt publishes a
+# static binary. Keep in step with the nixfmt in nix-config's flake.lock.
+system_nixfmt_version: "1.5.0"
+system_nixfmt_sha256: aa029247ab89c897e2f3948463967553f902f86e86e3402fa28cb29c4a44f745

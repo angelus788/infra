@@ -125,6 +125,15 @@
     - workstation_enable_terra | default(false) | bool
     - "'lua-language-server' in system_workstation_terra_packages"
 
+- name: Install nixfmt (static binary from NixOS/nixfmt)
+  ansible.builtin.get_url:
+    url: "https://github.com/NixOS/nixfmt/releases/download/v{{ system_nixfmt_version }}/nixfmt"
+    checksum: "sha256:{{ system_nixfmt_sha256 }}"
+    dest: /usr/local/bin/nixfmt
+    mode: "0755"
+    owner: root
+    group: root
+
 # After the packages above, which provide npm (nodejs22-npm-bin) and pipx.
 - name: Install npm language servers (global)
   community.general.npm:
