@@ -184,7 +184,12 @@ security_autoupdate_mail_on_error: false
 #      the host's distro - Flatpak/Flathub, AppImage support and firmware
 #      updates on all three, plus RPM Fusion/codecs/Terra on Fedora,
 #      multilib/codecs on Arch, and restricted-extras/codecs on Debian/Ubuntu.
-workstation_mode: no
+# Deliberately not given a default here: group_vars/all outranks variables set
+# in the inventory file itself, so a `workstation_mode: no` in this file
+# silently overrode `[workstations:vars] workstation_mode=yes` and every
+# workstation ran as a server. Every use is `workstation_mode | default(false)
+# | bool` (INI values are strings like "yes"), so unset means off.
+# workstation_mode: no
 
 # Only relevant if workstation_mode is on and the host is Fedora. Terra adds
 # packages Fedora doesn't ship (Discord, Zed, Floorp, swayfx, ...) - most

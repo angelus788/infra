@@ -1,5 +1,8 @@
 ---
 - name: SSH Port Juggle | Try connecting via SSH
+  # Only probes connections - safe to run under --check, where
+  # wait_for_connection would otherwise be skipped and the fallback never fire.
+  check_mode: false
   wait_for_connection:
     timeout: 5
   ignore_errors: true
@@ -12,6 +15,9 @@
     - _ssh_port_result is failed
 
 - name: SSH Port Juggle | Try connecting again
+  # Only probes connections - safe to run under --check, where
+  # wait_for_connection would otherwise be skipped and the fallback never fire.
+  check_mode: false
   wait_for_connection:
     timeout: 5
   ignore_errors: true
@@ -30,6 +36,9 @@
     - _ssh_port_default_result is failed
 
 - name: Try default credentials (for Raspberry Pi)
+  # Only probes connections - safe to run under --check, where
+  # wait_for_connection would otherwise be skipped and the fallback never fire.
+  check_mode: false
   wait_for_connection:
     timeout: 5
   ignore_errors: true
@@ -49,6 +58,9 @@
 
 
 - name: Try root
+  # Only probes connections - safe to run under --check, where
+  # wait_for_connection would otherwise be skipped and the fallback never fire.
+  check_mode: false
   wait_for_connection:
     timeout: 5
   ignore_errors: true

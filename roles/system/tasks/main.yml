@@ -10,7 +10,7 @@
 # Before dotfiles: on Fedora this enables Terra, which the dotfiles'
 # bootstrap.sh installs starship and ghostty from.
 - include_tasks: workstation.yml
-  when: workstation_mode | default(false)
+  when: workstation_mode | default(false) | bool
   tags:
       - workstation
 

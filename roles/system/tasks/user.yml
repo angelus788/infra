@@ -5,24 +5,28 @@
     name: "{{ item }}"
     state: present
   # docker only where geerlingguy.docker runs (not on workstations, run.yml)
-  loop: "{{ [username] + ([] if (workstation_mode | default(false)) else ['docker']) }}"
+  loop: "{{ [username] + ([] if (workstation_mode | default(false) | bool) else ['docker']) }}"
    
 - name: Create a login user
   user:
     name: "{{ username }}"
-    password: "{{ password | password_hash('sha512') }}"
-    groups: "{{ [sudo_group, 'users'] + ([] if (workstation_mode | default(false)) else ['docker']) }}"
+    # Fixed per-host salt (Ansible's documented idiom) - a random salt made
+    # every run rehash the password and report "changed". password_hash needs
+    # passlib on the controller (python3-passlib on Fedora).
+    password: "{{ password | password_hash('sha512', 65534 | random(seed=inventory_hostname) | string) }}"
+    groups: "{{ [sudo_group, 'users'] + ([] if (workstation_mode | default(false) | bool) else ['docker']) }}"
     state: present
     append: true
 
 # Only the home directory itself. This used to recurse, which set every file
 # under it - ~/.ssh private keys included - to 0755: world-readable, and ssh
-# refuses to use a private key with those permissions.
+# refuses to use a private key with those permissions. Workstations keep
+# Fedora's private 0700; servers get 0755.
 - name: Chmod the user home directory
   ansible.builtin.file:
     path: "/home/{{ username }}"
     state: directory
-    mode: "0755"
+    mode: "{{ '0700' if (workstation_mode | default(false) | bool) else '0755' }}"
     owner: "{{ username }}"
     group: "{{ username }}"
 
@@ -45,16 +49,35 @@
     name: "{{ username }}"
     shell: "{{ shell }}"
 
-- name: Disable fish greeting
-  lineinfile:
-    path: /home/{{ username }}/.config/fish/fish_variables
-    state: present
-    regexp: 'fish_greeting:.+'
-    line: 'SETUVAR fish_greeting:'
-    create: true
+# The previous version of the greeting task created ~/.config/fish (and on
+# desktop-less hosts ~/.config) as root, so fish couldn't save anything.
+# Ensure both belong to the user - also repairs hosts that task already ran on.
+- name: Make sure ~/.config and ~/.config/fish belong to the user
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
     owner: "{{ username }}"
     group: "{{ username }}"
-    mode: 0644
+    mode: "0755"
+  loop:
+    - "/home/{{ username }}/.config"
+    - "/home/{{ username }}/.config/fish"
+  when: '"fish" in shell'
+
+# Let fish write its own universal variable. Hand-writing the SETUVAR line into
+# a new fish_variables left out the "# VERSION: 3.0" header, so fish couldn't
+# parse the file and warned on every start.
+- name: Disable fish greeting
+  become: true
+  become_user: "{{ username }}"
+  ansible.builtin.command:
+    cmd: >-
+      fish -c 'if set -q fish_greeting; and test -z "$fish_greeting";
+      echo unchanged; else; set -U fish_greeting; echo changed; end'
+  environment:
+    HOME: "/home/{{ username }}"
+  register: system_fish_greeting
+  changed_when: system_fish_greeting.stdout == "changed"
   when: '"fish" in shell'
 
 - name: Suppress login messages

@@ -28,6 +28,8 @@
     force: false
   register: system_dotfiles_git
   failed_when:
+    # git itself comes from an earlier package step that --check only reports
+    - not ansible_check_mode
     - system_dotfiles_git is failed
     - "'Local modifications exist' not in (system_dotfiles_git.msg | default(''))"
 
@@ -45,7 +47,7 @@
   become: true
   become_user: "{{ username }}"
   ansible.builtin.command:
-    cmd: "./bootstrap.sh{{ ' --gui' if (workstation_mode | default(false)) else '' }}"
+    cmd: "./bootstrap.sh{{ ' --gui' if (workstation_mode | default(false) | bool) else '' }}"
     chdir: "{{ dotfiles_dir }}"
   environment:
     HOME: "/home/{{ username }}"

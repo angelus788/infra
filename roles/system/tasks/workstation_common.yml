@@ -32,7 +32,7 @@
     method: system
 
 - name: Apply firmware updates
-  when: workstation_update_firmware | default(false)
+  when: workstation_update_firmware | default(false) | bool
   block:
     - name: Ensure fwupd is installed
       ansible.builtin.package:
@@ -76,6 +76,8 @@
         force: false
       register: system_wallpaper_git
       failed_when:
+        # git itself comes from an earlier package step that --check only reports
+        - not ansible_check_mode
         - system_wallpaper_git is failed
         - "'Local modifications exist' not in (system_wallpaper_git.msg | default(''))"
 

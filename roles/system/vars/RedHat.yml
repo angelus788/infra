@@ -63,6 +63,7 @@ system_workstation_packages:
   - nodejs22-bin
   - nodejs22-npm-bin
   - pipx # the Python language servers below
+  - python3.13 # for systemd-language-server, see system_workstation_pipx_packages
   # Language servers the dotfiles' editors use
   - rust-analyzer # zed (path_lookup)
   - just # the command runner (nix-config's justfile); nvim's `just` LSP is the separate just-lsp
@@ -90,7 +91,13 @@ system_workstation_npm_packages:
   - vscode-langservers-extracted # jsonls, eslint
   - "@olrtg/emmet-language-server" # emmet_language_server
 
+# `python` picks the interpreter pipx builds that tool's venv with (default:
+# the system python3).
 system_workstation_pipx_packages:
-  - jedi-language-server
-  - nginx-language-server
-  - systemd-language-server # systemd_ls
+  - name: jedi-language-server
+  - name: nginx-language-server
+  # systemd_ls. It pins lxml<6, and lxml 5.x has no wheel for Fedora 44's
+  # Python 3.14, so pip tried to compile it (failing without libxml2/libxslt
+  # headers). Python 3.13 has prebuilt lxml 5.x wheels - nothing to compile.
+  - name: systemd-language-server
+    python: python3.13

@@ -11,6 +11,14 @@
     immediate: true
     state: enabled
 
+# community.general.seport needs the SELinux Python bindings, and this now runs
+# before the system role installs anything (see run.yml).
+- name: Install the SELinux Python bindings seport uses
+  ansible.builtin.dnf:
+    name: python3-policycoreutils
+    state: present
+  when: ansible_selinux.status | default("disabled") == "enabled"
+
 - name: Label the configured SSH port for SELinux
   community.general.seport:
     ports: "{{ security_ssh_port }}"

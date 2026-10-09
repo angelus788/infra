@@ -27,6 +27,10 @@ fedora-desktop ansible_host=192.168.2.20 ansible_user=CHANGE_ME ansible_port=69
 
 [workstations:vars]
 workstation_mode=yes
+# Variables that DO have a default in group_vars/all/vars.yml (netbird_enabled,
+# workstation_enable_terra, ...) can't be overridden here: group_vars/all
+# outranks inventory-file vars. Use host_vars/<host>.yml or
+# group_vars/<group>.yml for those instead.
 
 # If you have several keys loaded in your ssh-agent, uncomment this - without
 # it, ssh offers every agent key before your intended one, which can exceed

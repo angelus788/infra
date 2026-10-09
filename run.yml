@@ -14,6 +14,19 @@
 - hosts: fleet
   become: yes
 
+  pre_tasks:
+      # Before the roles: geerlingguy.security moves sshd to security_ssh_port
+      # and restarts it from a handler at the end of the roles section. Under
+      # SELinux, sshd can't bind a port that isn't labeled ssh_port_t, and
+      # firewalld would block it - as post_tasks, these ran after that restart,
+      # which left a Fedora host with sshd down and no way back in over SSH.
+      - import_tasks: tasks/redhat_ssh_firewall.yml
+        when:
+            - ansible_os_family == "RedHat"
+            - security_ssh_port is defined
+        tags:
+            - security
+
   roles:
       #
       # Basics
@@ -34,7 +47,7 @@
 
       - role: geerlingguy.docker
         # Not relevant on a workstation (group_vars/all/vars.yml)
-        when: not (workstation_mode | default(false))
+        when: not (workstation_mode | default(false) | bool)
         tags:
             - docker
 
@@ -48,30 +61,22 @@
         # are for SMART/snapraid on a server.
         when:
             - ansible_os_family == "Debian"
-            - not (workstation_mode | default(false))
+            - not (workstation_mode | default(false) | bool)
         tags:
             - msmtp
 
       - name: containers
         # Not relevant on a workstation (group_vars/all/vars.yml)
-        when: not (workstation_mode | default(false))
+        when: not (workstation_mode | default(false) | bool)
         tags:
           - containers
 
       - role: tailscale
-        when: tailscale_enabled | default(false)
+        when: tailscale_enabled | default(false) | bool
         tags:
             - tailscale
 
       - role: netbird
-        when: netbird_enabled | default(false)
+        when: netbird_enabled | default(false) | bool
         tags:
             - netbird
-
-  post_tasks:
-      - import_tasks: tasks/redhat_ssh_firewall.yml
-        when:
-            - ansible_os_family == "RedHat"
-            - security_ssh_port is defined
-        tags:
-            - security
