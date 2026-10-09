@@ -62,13 +62,15 @@
   ansible.builtin.command:
     cmd: dnf group upgrade -y multimedia
   register: multimedia_upgrade
-  changed_when: "'Nothing to do' not in multimedia_upgrade.stdout"
+  # dnf5 never says "Nothing to do" here - a no-op ends with an empty
+  # "Transaction Summary:", a real change lists e.g. " Upgrading: 3 packages".
+  changed_when: multimedia_upgrade.stdout is search('(Installing|Upgrading|Replacing|Removing|Downgrading):\\s+\\d+ package')
 
 - name: Upgrade the core group (AppStream metadata for the software center)
   ansible.builtin.command:
     cmd: dnf group upgrade -y core
   register: core_upgrade
-  changed_when: "'Nothing to do' not in core_upgrade.stdout"
+  changed_when: core_upgrade.stdout is search('(Installing|Upgrading|Replacing|Removing|Downgrading):\\s+\\d+ package')
 
 # GNOME apps can hold onto references to the old ffmpeg-free libraries and act
 # strange until the next reboot.
