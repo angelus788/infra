@@ -50,3 +50,60 @@
       register: fwupd_result
       failed_when: false
       changed_when: "'Successfully installed' in fwupd_result.stdout"
+
+# COSMIC-only bits the dotfiles' cosmic and wallpaper packages expect.
+- name: Check whether COSMIC is installed
+  ansible.builtin.stat:
+    path: /usr/bin/cosmic-session
+  register: system_cosmic_session
+
+- name: Set up COSMIC extras
+  when: system_cosmic_session.stat.exists
+  become: true
+  become_user: "{{ username }}"
+  environment:
+    HOME: "/home/{{ username }}"
+  block:
+    # The dotfiles' wallpaper package rotates COSMIC's background through this
+    # directory (Nix fills it from the same repo). force: false keeps any local
+    # changes there instead of discarding them.
+    - name: Clone or update the wallpaper repo
+      ansible.builtin.git:
+        repo: "{{ wallpaper_repo }}"
+        dest: "/home/{{ username }}/Pictures/Wallpaper"
+        version: main
+        depth: 1
+        force: false
+      register: system_wallpaper_git
+      failed_when:
+        - system_wallpaper_git is failed
+        - "'Local modifications exist' not in (system_wallpaper_git.msg | default(''))"
+
+    # The cosmic package pins COSMIC's own minimize/maximize buttons, but GTK
+    # apps (ghostty, Firefox, ...) read this gsettings key, which COSMIC leaves
+    # at "appmenu:close". It lives in the user's dconf database, not a file
+    # stow can place. Uses the live session bus when the user is logged in,
+    # otherwise a temporary one (applied at next login). Deliberately no
+    # "appmenu" on the left, unlike nix-config's cosmic module - this is the
+    # layout in use on vidar.
+    - name: Show minimize/maximize buttons in GTK apps
+      ansible.builtin.shell:
+        cmd: |
+          set -eu
+          bus="/run/user/$(id -u)/bus"
+          if [ -S "$bus" ]; then
+            export DBUS_SESSION_BUS_ADDRESS="unix:path=$bus"
+            run() { "$@"; }
+          else
+            run() { dbus-run-session -- "$@"; }
+          fi
+          want="':minimize,maximize,close'"
+          if [ "$(run gsettings get org.gnome.desktop.wm.preferences button-layout)" = "$want" ]; then
+            echo unchanged
+          else
+            run gsettings set org.gnome.desktop.wm.preferences button-layout "$want"
+            echo changed
+          fi
+        executable: /bin/bash
+      register: system_gtk_buttons
+      changed_when: system_gtk_buttons.stdout == "changed"

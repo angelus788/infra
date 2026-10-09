@@ -6,6 +6,7 @@ roles:
     - name: chriswayg.msmtp-mailer
 
 collections:
-    - name: community.general # dnf_config_manager, flatpak, flatpak_remote, ini_file, seport
+    - name: community.general # dnf_config_manager, flatpak, flatpak_remote, ini_file, seport, npm, pipx
+      version: ">=9.4.0" # pipx's global option
     - name: community.docker # already used by roles/containers/tasks/install.yml
     - name: ansible.posix # firewalld

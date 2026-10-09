@@ -4,29 +4,27 @@
   group:
     name: "{{ item }}"
     state: present
-  loop:
-      - "{{ username }}"
-      - docker
+  # docker only where geerlingguy.docker runs (not on workstations, run.yml)
+  loop: "{{ [username] + ([] if (workstation_mode | default(false)) else ['docker']) }}"
    
 - name: Create a login user
   user:
     name: "{{ username }}"
     password: "{{ password | password_hash('sha512') }}"
-    groups: 
-      - "{{ sudo_group }}"
-      - docker
-      - users
+    groups: "{{ [sudo_group, 'users'] + ([] if (workstation_mode | default(false)) else ['docker']) }}"
     state: present
     append: true
 
+# Only the home directory itself. This used to recurse, which set every file
+# under it - ~/.ssh private keys included - to 0755: world-readable, and ssh
+# refuses to use a private key with those permissions.
 - name: Chmod the user home directory
-  file:
+  ansible.builtin.file:
     path: "/home/{{ username }}"
     state: directory
-    mode: 0755
+    mode: "0755"
     owner: "{{ username }}"
     group: "{{ username }}"
-    recurse: yes
 
 - name: Allow '{{ sudo_group }}' group to have passwordless sudo
   lineinfile:

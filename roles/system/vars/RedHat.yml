@@ -21,9 +21,20 @@ extra_packages:
   - mosh
   - rsync
   - lm_sensors
-  - iotop
+  - iotop-c # iotop was dropped from Fedora; iotop-c obsoletes it but has no "iotop" provide, so dnf fails on the old name
   - ncdu
   - dnf-utils # provides needs-restarting, used by tasks/update_RedHat.yml
+  # Called by the dotfiles' zsh/fish/bash configs (bootstrap.sh installs them
+  # too, but listing them here keeps hosts correct without the dotfiles)
+  - zoxide
+  - fzf
+  - direnv
+  - grc # fish's grc integration sources /etc/grc.fish
+  - bat
+  - fd-find
+  - ripgrep
+  - jq
+  - pciutils # lspci, for the dotfiles' aspm alias
 
 # geerlingguy.security's dnf-automatic autoupdate support (autoupdate-RedHat.yml)
 # hardcodes the systemd unit name `dnf-automatic-install.timer`, which doesn't
@@ -36,3 +47,50 @@ security_autoupdate_enabled: false
 # Package providing libfuse2 - most AppImages still bundle against FUSE2, not
 # FUSE3. Used by roles/system/tasks/workstation_common.yml.
 appimage_fuse_pkg: fuse-libs
+
+# Desktop apps for workstation_mode hosts (roles/system/tasks/workstation_RedHat.yml).
+system_workstation_packages:
+  - yt-dlp # the dotfiles' ya/yd/yh aliases (with RPM Fusion's full ffmpeg)
+  - wl-clipboard # Wayland clipboard for tmux-yank and nvim's unnamedplus
+  # LazyVim: Treesitter parser builds and plugin installs
+  - tree-sitter-cli
+  - gcc
+  - make
+  - unzip
+  # Node for LazyVim and the npm language servers below. The versioned
+  # nodejs22/nodejs22-npm packages only ship node-22/npm-22; the -bin
+  # subpackages add the plain node/npm commands.
+  - nodejs22-bin
+  - nodejs22-npm-bin
+  - pipx # the Python language servers below
+  # Language servers the dotfiles' editors use
+  - rust-analyzer # zed (path_lookup)
+  - just # the command runner (nix-config's justfile); nvim's `just` LSP is the separate just-lsp
+
+# From the Terra repo, so only installed when workstation_enable_terra is on.
+# The dotfiles configure both (zed and vscodium packages); Terra's VSCodium
+# package is named codium.
+system_workstation_terra_packages:
+  - zed
+  - codium
+  # Language servers: yamlls and terraformls for the dotfiles' nvim, lua_ls for LazyVim
+  - yaml-language-server
+  - terraform-ls
+  - lua-language-server
+
+# Language servers enabled in the dotfiles' nvim (vim.lsp.enable) that Fedora
+# doesn't package. Installed globally (/usr/local) so every shell finds them.
+# Not covered: nixd/nixpkgs-fmt (Nix-only), phan (PHP), and the GitHub-release
+# binaries docker-language-server, helm-ls, markdown-oxide and just-lsp - nvim
+# just doesn't start a server it can't find.
+system_workstation_npm_packages:
+  - bash-language-server # bashls
+  - typescript # ts_ls needs the compiler alongside the server
+  - typescript-language-server # ts_ls
+  - vscode-langservers-extracted # jsonls, eslint
+  - "@olrtg/emmet-language-server" # emmet_language_server
+
+system_workstation_pipx_packages:
+  - jedi-language-server
+  - nginx-language-server
+  - systemd-language-server # systemd_ls

@@ -1,24 +1,53 @@
 ---
-- name: Chown the repo
-  file:
-      path: '/home/{{ username }}/dotfiles'
-      recurse: yes
-      state: directory
-      owner: '{{ username }}'
-      group: '{{ username }}'
+# The dotfiles repo (a GNU Stow mirror of nix-config's modules/dots) ships its
+# own bootstrap.sh, which installs the tools the configs expect, moves
+# distro-default shell rc files out of stow's way, stows the packages and
+# installs the zsh/tmux/nvim plugins. Run that rather than a bare `stow */`,
+# which also stowed the opt-in packages (wpaperd, variety) and skipped the
+# plugin managers.
 
-- name: Clone the latest dotfiles repo
-  become_user: '{{ username }}'
-  git:
-      repo: '{{ dotfiles_repo }}'
-      dest: '/home/{{ username }}/dotfiles'
-      recursive: no
-      force: yes
+- name: Make sure the dotfiles parent directory exists
+  ansible.builtin.file:
+    path: "{{ dotfiles_dir | dirname }}"
+    state: directory
+    owner: "{{ username }}"
+    group: "{{ username }}"
+    mode: "0755"
 
-- name: Stow the dotfiles
-  become_user: '{{ username }}'
-  shell:
-      cmd: stow -v */
-      chdir: '/home/{{ username }}/dotfiles'
-  register: stow_result
-  changed_when: stow_result.stdout != ""
+# force: false - on a workstation the checkout is lived in: zed, btop and
+# COSMIC write settings back through the stow symlinks, and it's where the
+# dotfiles get edited. git refuses to update over local changes instead of
+# discarding them; that's reported as a warning below, not a failed play.
+- name: Clone or update the dotfiles repo
+  become: true
+  become_user: "{{ username }}"
+  ansible.builtin.git:
+    repo: "{{ dotfiles_repo }}"
+    dest: "{{ dotfiles_dir }}"
+    version: main
+    force: false
+  register: system_dotfiles_git
+  failed_when:
+    - system_dotfiles_git is failed
+    - "'Local modifications exist' not in (system_dotfiles_git.msg | default(''))"
+
+- name: Warn that the dotfiles checkout has local changes
+  ansible.builtin.debug:
+    msg: >-
+      {{ dotfiles_dir }} has local modifications, so it wasn't updated.
+      Commit or stash them, then re-run with --tags dotfiles.
+  when: "'Local modifications exist' in (system_dotfiles_git.msg | default(''))"
+
+# --gui adds the desktop packages (ghostty, zed, cosmic, ...) and the
+# JetBrainsMono Nerd Font. bootstrap.sh refuses to run as root and calls sudo
+# itself for dnf, which the passwordless sudo set up in user.yml allows.
+- name: Run the dotfiles bootstrap
+  become: true
+  become_user: "{{ username }}"
+  ansible.builtin.command:
+    cmd: "./bootstrap.sh{{ ' --gui' if (workstation_mode | default(false)) else '' }}"
+    chdir: "{{ dotfiles_dir }}"
+  environment:
+    HOME: "/home/{{ username }}"
+  register: system_dotfiles_bootstrap
+  changed_when: system_dotfiles_bootstrap.stdout is search('installing:|cloned |moved distro-default|installed JetBrainsMono')

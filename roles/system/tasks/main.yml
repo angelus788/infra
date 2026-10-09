@@ -1,13 +1,19 @@
 ---
 - include_vars: "vars/{{ ansible_os_family }}.yml"
-- include_tasks: netplan.yml
-- include_tasks: essential.yml
-- include_tasks: user.yml
-- include_tasks: dotfiles.yml
-  tags:
-      - dotfiles
 
+- include_tasks: netplan.yml
+
+- include_tasks: essential.yml
+
+- include_tasks: user.yml
+
+# Before dotfiles: on Fedora this enables Terra, which the dotfiles'
+# bootstrap.sh installs starship and ghostty from.
 - include_tasks: workstation.yml
   when: workstation_mode | default(false)
   tags:
       - workstation
+
+- include_tasks: dotfiles.yml
+  tags:
+      - dotfiles

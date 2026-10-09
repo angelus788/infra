@@ -22,7 +22,17 @@ ssh_public_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII07ukuUm57yQYo2YL8GSLtPU8z9
 
 shell: /usr/bin/fish
 
-dotfiles_repo: https://github.com/angelus788/dotfiles # e.g. https://github.com/<you>/dotfiles - or delete the dotfiles role/task if you don't use one
+# The Stow mirror of nix-config's modules/dots (roles/system/tasks/dotfiles.yml
+# runs its bootstrap.sh). Public, so HTTPS works on fresh hosts with no keys.
+dotfiles_repo: https://git.avgtechguy.com/avgtechguy/dotfiles.git
+
+# Same place the other Workspace/Projects checkouts live - stow's symlinks
+# point into this directory, so keep it consistent across hosts.
+dotfiles_dir: "/home/{{ username }}/Workspace/Projects/dotfiles"
+
+# Cloned to ~/Pictures/Wallpaper on COSMIC workstations, for the dotfiles'
+# wallpaper package (roles/system/tasks/workstation_common.yml).
+wallpaper_repo: https://git.avgtechguy.com/avgtechguy/wallpaper.git
 
 guid: 1000
 
@@ -184,4 +194,4 @@ workstation_enable_terra: yes
 # Only relevant if workstation_mode is on. Applies pending device firmware
 # updates via fwupdmgr - can be disruptive (BIOS/EC updates), so it's opt-in
 # even on workstation hosts.
-workstation_update_firmware: yes
+workstation_update_firmware: no
